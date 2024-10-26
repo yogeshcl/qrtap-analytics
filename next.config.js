@@ -11,7 +11,7 @@ const defaultLocale = process.env.DEFAULT_LOCALE;
 const disableLogin = process.env.DISABLE_LOGIN;
 const disableUI = process.env.DISABLE_UI;
 const forceSSL = process.env.FORCE_SSL;
-const frameAncestors = process.env.ALLOWED_FRAME_URLS;
+// const frameAncestors = process.env.ALLOWED_FRAME_URLS;
 const privateMode = process.env.PRIVATE_MODE;
 const trackerScriptName = process.env.TRACKER_SCRIPT_NAME;
 
@@ -21,7 +21,7 @@ const contentSecurityPolicy = [
   `script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
   `style-src 'self' 'unsafe-inline'`,
   `connect-src 'self' api.umami.is cloud.umami.is`,
-  `frame-ancestors 'self' ${frameAncestors}`,
+  `frame-ancestors *`,
 ];
 
 const headers = [

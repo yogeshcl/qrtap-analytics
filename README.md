@@ -157,3 +157,13 @@ docker compose up --force-recreate
 [linkedin-url]: https://linkedin.com/company/umami-software
 [discord-shield]: https://img.shields.io/badge/Discord--blue?style=social&logo=discord
 [discord-url]: https://discord.com/invite/4dz4zcXYrQ
+
+
+
+
+docker build -t justwicks/qrtap-analytics . --platform linux/amd64
+docker build -t justwicks/qrtap-analytics .
+
+
+
+docker push justwicks/qrtap-analytics

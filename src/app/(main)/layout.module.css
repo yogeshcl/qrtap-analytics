@@ -5,12 +5,12 @@
   overflow: hidden;
 }
 
-.nav {
+/* .nav {
   height: 60px;
   width: 100vw;
   grid-column: 1;
   grid-row: 1 / 2;
-}
+} */
 
 .body {
   grid-column: 1;
