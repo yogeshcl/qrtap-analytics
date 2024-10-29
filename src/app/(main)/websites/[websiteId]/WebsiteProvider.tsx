@@ -31,6 +31,7 @@ export function WebsiteProvider({
       const decodedToken = decodeURIComponent(token);
       // console.log("setting token",decodedToken)
       localStorage.setItem('umami.auth', `"${decodedToken}"`);
+      localStorage.setItem('umami.theme', `"light"`);
       setIsTokenStored(true);
     } else {
       setIsTokenStored(true); // Set true to allow rendering without token if needed

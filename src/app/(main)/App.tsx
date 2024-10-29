@@ -20,6 +20,7 @@ export function App({ children }) {
       const decodedToken = decodeURIComponent(token);
       // console.log("setting token on page load----------",decodedToken,user,"00--00",error, isLoading)
       localStorage.setItem('umami.auth', `"${decodedToken}"`);
+      localStorage.setItem('umami.theme', `"light"`);
     }
   }, []);
 
