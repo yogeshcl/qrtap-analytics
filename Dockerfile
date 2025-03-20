@@ -2,7 +2,7 @@
 FROM node:18-alpine AS deps
 
 # Install required system dependencies
-RUN apk add --no-cache libc6-compat openssl1.1-compat
+RUN apk add --no-cache libc6-compat openssl1.1
 
 WORKDIR /app
 
@@ -54,7 +54,7 @@ RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
 # Install necessary runtime dependencies
-RUN apk add --no-cache curl openssl1.1-compat \
+RUN apk add --no-cache curl openssl1.1 \
     && yarn add npm-run-all dotenv semver prisma@5.17.0
 
 # Copy required application files
