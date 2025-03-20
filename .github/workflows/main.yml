@@ -7,10 +7,9 @@ on:
       - develop
 
 jobs:
-  build-and-push-main:
-    if: github.ref == 'refs/heads/main'
+  build-and-push:
     runs-on: ubuntu-latest
-
+    
     steps:
       # Step 1: Checkout the code
       - name: Checkout Code
@@ -24,77 +23,53 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-2
 
-      # Step 3: Log in to Amazon ECR
+      # Step 3: Determine branch and version file
+      - name: Set versioning file based on branch
+        id: branch-info
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "VERSION_FILE=.version" >> $GITHUB_ENV
+            echo "ECR_REPO=qrtap" >> $GITHUB_ENV
+          else
+            echo "VERSION_FILE=.version-dev" >> $GITHUB_ENV
+            echo "ECR_REPO=qrtap-dev" >> $GITHUB_ENV
+          fi
+
+      # Step 4: Increment and Commit Version
+      - name: Increment and Commit Version
+        id: versioning
+
+        run: |
+          if [ ! -f "$VERSION_FILE" ]; then
+            echo "1.0.0" > $VERSION_FILE
+          fi
+          VERSION=$(cat $VERSION_FILE)
+          NEW_VERSION=$(echo "$VERSION" | awk -F. -v OFS=. '{$NF += 1 ; print}')
+          echo "$NEW_VERSION" > $VERSION_FILE
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add $VERSION_FILE  # Ensure the file is staged
+          git commit -m "chore: increment version to $NEW_VERSION"
+          git push origin ${{ github.ref_name }}
+
+
+      # Step 5: Log in to Amazon ECR
       - name: Log in to Amazon ECR
         run: |
           aws ecr get-login-password --region ap-south-2 | docker login --username AWS --password-stdin 522814717373.dkr.ecr.ap-south-2.amazonaws.com
 
-      # Step 4: Manage Docker image versioning
-      - name: Set up Docker image versioning
-        id: versioning
-        run: |
-          SECONDS=0
-          VERSION=$(cat .version 2>/dev/null || echo "1.0.0")
-          NEW_VERSION=$(echo "$VERSION" | awk -F. -v OFS=. '{$NF += 1 ; print}')
-          echo "$NEW_VERSION" > .version
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      # Step 5: Build Docker image
+      # Step 6: Build Docker image
       - name: Build Docker image
         run: |
-          docker build -t qrtap-analytics:$NEW_VERSION -t qrtap-analytics:latest .
+          BUILD_ENV=$(if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then echo "production"; else echo "development"; fi)
+          docker build --build-arg BUILD_ENV=$BUILD_ENV -t qrtap-analytics:$NEW_VERSION -t qrtap-analytics:latest .
 
-      # Step 6: Tag and push Docker image to ECR
+      # Step 7: Tag and push Docker image to ECR
       - name: Tag and Push Docker image to ECR
         run: |
-          docker tag qrtap-analytics:$NEW_VERSION 522814717373.dkr.ecr.ap-south-2.amazonaws.com/qrtap/qrtap-analytics:$NEW_VERSION
-          docker tag qrtap-analytics:latest 522814717373.dkr.ecr.ap-south-2.amazonaws.com/qrtap/qrtap-analytics:latest
-          docker push 522814717373.dkr.ecr.ap-south-2.amazonaws.com/qrtap/qrtap-analytics:$NEW_VERSION
-          docker push 522814717373.dkr.ecr.ap-south-2.amazonaws.com/qrtap/qrtap-analytics:latest
-
-  build-and-push-develop:
-    if: github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
-
-    steps:
-      # Step 1: Checkout the code
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      # Step 2: Set up AWS Credentials
-      - name: Set up AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-2
-
-      # Step 3: Log in to Amazon ECR
-      - name: Log in to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ap-south-2 | docker login --username AWS --password-stdin 522814717373.dkr.ecr.ap-south-2.amazonaws.com
-
-      # Step 4: Manage Docker image versioning
-      - name: Set up Docker image versioning
-        id: versioning
-        run: |
-          SECONDS=0
-          VERSION=$(cat .version 2>/dev/null || echo "1.0.0")
-          NEW_VERSION=$(echo "$VERSION" | awk -F. -v OFS=. '{$NF += 1 ; print}')
-          echo "$NEW_VERSION" > .version
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      # Step 5: Build Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t qrtap-analytics:$NEW_VERSION -t qrtap-analytics:latest .
-
-      # Step 6: Tag and push Docker image to ECR
-      - name: Tag and Push Docker image to ECR
-        run: |
-          docker tag qrtap-analytics:$NEW_VERSION 522814717373.dkr.ecr.ap-south-2.amazonaws.com/qrtap/qrtap-analytics:$NEW_VERSION
-          docker tag qrtap-analytics:latest 522814717373.dkr.ecr.ap-south-2.amazonaws.com/qrtap/qrtap-analytics:latest
-          docker push 522814717373.dkr.ecr.ap-south-2.amazonaws.com/qrtap/qrtap-analytics:$NEW_VERSION
-          docker push 522814717373.dkr.ecr.ap-south-2.amazonaws.com/qrtap/qrtap-analytics:latest
+          docker tag qrtap-analytics:$NEW_VERSION 522814717373.dkr.ecr.ap-south-2.amazonaws.com/$ECR_REPO/qrtap-analytics:$NEW_VERSION
+          docker tag qrtap-analytics:latest 522814717373.dkr.ecr.ap-south-2.amazonaws.com/$ECR_REPO/qrtap-analytics:latest
+          docker push 522814717373.dkr.ecr.ap-south-2.amazonaws.com/$ECR_REPO/qrtap-analytics:$NEW_VERSION
+          docker push 522814717373.dkr.ecr.ap-south-2.amazonaws.com/$ECR_REPO/qrtap-analytics:latest
